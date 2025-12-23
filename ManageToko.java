@@ -1,4 +1,5 @@
 import java.util.Scanner;
+import java.util.ArrayList;
 
 // ===================== ITEM DALAM TRANSAKSI =====================
 class ItemTransaksi {
@@ -13,31 +14,59 @@ class ItemTransaksi {
     }
 }
 
-// ===================== MODEL PRODUK TOKO =====================
+// ===================== MODEL AdminKasir =====================
+class AdminKasir {
+    private String nama;
+    private String pass;
+    private int role; // 1 = Super Admin, 2 = Admin/Kasir
+
+    public AdminKasir(String nama, String pass, int role) {
+        this.nama = nama;
+        this.pass = pass;
+        this.role = role;
+    }
+
+    public String getNama() {
+        return nama;
+    }
+
+    public String getPass() {
+        return pass;
+    }
+
+    public int getRole() {
+        return role;
+    }
+}
+
+// ===================== MODEL PRODUK =====================
 class ModelProduct {
     private String namaProduk;
     private int stok;
     private int harga;
 
+    public String getNamaProduk() {
+        return namaProduk;
+    }
+
     public void setNamaProduk(String namaProduk) {
         this.namaProduk = namaProduk;
     }
-    public String getNamaProduk() {
-        return namaProduk;
+
+    public int getStok() {
+        return stok;
     }
 
     public void setStok(int stok) {
         this.stok = stok;
     }
-    public int getStok() {
-        return stok;
+
+    public int getHarga() {
+        return harga;
     }
 
     public void setHarga(int harga) {
         this.harga = harga;
-    }
-    public int getHarga() {
-        return harga;
     }
 }
 
@@ -47,7 +76,7 @@ class ModelTransaksi {
     int itemCount = 0;
     int total = 0;
 
-    public void addItem(ItemTransaksi item){
+    public void addItem(ItemTransaksi item) {
         items[itemCount++] = item;
         total += item.harga * item.jumlah;
     }
@@ -57,6 +86,9 @@ class ModelTransaksi {
 public class ManageToko {
 
     Scanner sc = new Scanner(System.in);
+
+    ArrayList<AdminKasir> adminKasir = new ArrayList<>();
+    AdminKasir currentUser = null;
 
     ModelProduct[] products = new ModelProduct[100];
     int productIndex = 0;
@@ -69,232 +101,215 @@ public class ManageToko {
         app.runThis();
     }
 
-    void runThis(){
-        loginUser();  // wajib login dulu
+    void runThis() {
+        // DEFAULT USER
+        adminKasir.add(new AdminKasir("admin", "123", 1)); // Super Admin
+        adminKasir.add(new AdminKasir("ical", "111", 2));  // Admin/Kasir
 
-        int pilih = 0;
+        loginUser();
+
         while (true) {
-            pilih = menuApps();
+            int pilih = menuApps();
+            if (currentUser.getRole() == 1) { 
+                switch (pilih) { 
+                    case 1 -> buatAdmin(); 
+                    case 2 -> addProduct(); 
+                    case 3 -> showProduct(); 
+                    case 4 -> addStok(); 
+                    case 5 -> transaksi(); 
+                    case 6 -> showHistory(); 
+                    case 7 -> stopApp(); 
+                    case 8 -> logout(); 
+                    default -> System.out.println("Pilihan tidak valid!");
+                }
+            }
 
-            switch (pilih) {
-                case 1: addProduct(); break;
-                case 2: showProduct(); break;
-                case 3: transaksi(); break;
-                case 4: showHistory(); break;
-                case 5: addStok(); break;
-                case 6: stopApp(); return;
-                case 7: logout(); break;
-                default: System.out.println("Pilihan tidak valid!");
+            switch (pilih) { 
+                case 1 -> showProduct(); 
+                case 2 -> addStok(); 
+                case 3 -> transaksi(); 
+                case 4 -> showHistory(); 
+                case 5 -> stopApp(); 
+                case 6 -> logout(); 
+                default -> System.out.println("Pilihan tidak valid!"); 
             }
         }
     }
 
-    // =============== LOGIN SYSTEM =================
-    void loginUser(){
-        String usernameBenar = "admin";
-        String passwordBenar = "123";
-
+    // ===================== LOGIN =====================
+    void loginUser() {
         int attempts = 0;
-        boolean loginBerhasil = false;
 
-        System.out.println("\n=== LOGIN TOKO ===");
-
-        while (attempts < 3 && !loginBerhasil) {
-            System.out.print("Username : ");
+        while (attempts < 3) {
+            System.out.print("\nUsername : ");
             String user = sc.nextLine();
 
             System.out.print("Password : ");
             String pass = sc.nextLine();
 
-            if (user.equals(usernameBenar) && pass.equals(passwordBenar)) {
-                System.out.println("Login berhasil!\n");
-                loginBerhasil = true;
-            } else {
-                System.out.println("Username atau Password salah!\n");
-                attempts++;
+            for (AdminKasir a : adminKasir) {
+                if (user.equals(a.getNama()) && pass.equals(a.getPass())) {
+                    currentUser = a;
+                    System.out.println("Login berhasil sebagai "
+                            + (a.getRole() == 1 ? "Super Admin" : "Admin/Kasir"));
+                    return;
+                }
             }
+
+            attempts++;
+            System.out.println("Login gagal!");
         }
 
-        if (!loginBerhasil) {
-            System.out.println("Anda salah 3x! Aplikasi dihentikan.");
-            System.exit(0);
-        }
+        System.out.println("Terlalu banyak percobaan. Aplikasi ditutup.");
+        System.exit(0);
     }
 
     // ===================== MENU =====================
-    int menuApps(){
+    int menuApps() {
         System.out.println("\n=== MENU TOKO ===");
-        System.out.println("1. Add Product");
-        System.out.println("2. Show Product");
+        if (currentUser.getRole() == 1) { // SUPER ADMIN
+            System.out.println("1. Buat Admin");
+            System.out.println("2. Add Product");
+            System.out.println("3. Show Product");
+            System.out.println("4. Add Stok");
+            System.out.println("5. Transaksi");
+            System.out.println("6. History");
+            System.out.println("7. Stop");
+            System.out.println("8. Logout");
+    } else { 
+        System.out.println("1. Show Product");
+        System.out.println("2. Add Stok");
         System.out.println("3. Transaksi");
-        System.out.println("4. History Transaksi");
-        System.out.println("5. Add Stok");
-        System.out.println("6. Stop");
-        System.out.println("7. Logout");
-        System.out.print("Pilih menu : ");
-        return sc.nextInt();
+        System.out.println("4. History");
+        System.out.println("5. Stop");
+        System.out.println("6. Logout");
     }
 
-    // ===================== ADD PRODUCT =====================
+    System.out.print("Pilih : ");
+    return sc.nextInt();
+}
+
+
+    // ===================== BUAT ADMIN =====================
+    void buatAdmin() {
+        sc.nextLine();
+        System.out.println("\n=== INPUT ADMIN ===");
+
+        System.out.print("Username : ");
+        String nama = sc.nextLine();
+
+        System.out.print("Password : ");
+        String pass = sc.nextLine();
+
+        System.out.println("Role:");
+        System.out.println("1. Super Admin");
+        System.out.println("2. Admin/Kasir");
+        System.out.print("Pilih : ");
+        int role = sc.nextInt();
+
+        adminKasir.add(new AdminKasir(nama, pass, role));
+        System.out.println("Admin berhasil dibuat!");
+    }
+
+    // ===================== PRODUK =====================
     void addProduct() {
         sc.nextLine();
         ModelProduct p = new ModelProduct();
 
-        System.out.println("\n=== INPUT PRODUK ===");
         System.out.print("Nama produk : ");
         p.setNamaProduk(sc.nextLine());
 
-        System.out.print("Harga produk : ");
+        System.out.print("Harga : ");
         p.setHarga(sc.nextInt());
 
-        System.out.print("Stok produk : ");
+        System.out.print("Stok : ");
         p.setStok(sc.nextInt());
 
         products[productIndex++] = p;
-
         System.out.println("Produk berhasil ditambahkan!");
     }
 
-    // ===================== SHOW PRODUCTS =====================
-    void showProduct(){
-        System.out.println("\n=== DAFTAR PRODUK ===");
-
+    void showProduct() {
         if (productIndex == 0) {
-            System.out.println("Belum ada produk!");
+            System.out.println("Belum ada produk.");
             return;
         }
 
         for (int i = 0; i < productIndex; i++) {
-            System.out.println((i+1) + ". " + products[i].getNamaProduk()
+            System.out.println((i + 1) + ". " + products[i].getNamaProduk()
                     + " | Harga: " + products[i].getHarga()
                     + " | Stok: " + products[i].getStok());
         }
     }
 
+    void addStok() {
+        showProduct();
+        System.out.print("Pilih produk : ");
+        int idx = sc.nextInt() - 1;
+
+        System.out.print("Tambah stok : ");
+        int tambah = sc.nextInt();
+
+        products[idx].setStok(products[idx].getStok() + tambah);
+        System.out.println("Stok berhasil ditambah!");
+    }
+
     // ===================== TRANSAKSI =====================
-    void transaksi(){
-
-        if (productIndex == 0) {
-            System.out.println("Belum ada produk!");
-            return;
-        }
-
+    void transaksi() {
         ModelTransaksi tr = new ModelTransaksi();
 
-        System.out.print("\nAda berapa jenis barang yang dibeli? : ");
+        System.out.print("Jumlah jenis barang : ");
         int jenis = sc.nextInt();
 
         for (int i = 0; i < jenis; i++) {
-
-            System.out.println("\nPilih produk ke-" + (i+1));
             showProduct();
+            System.out.print("Pilih produk : ");
+            int idx = sc.nextInt() - 1;
 
-            System.out.print("Masukkan nomor produk : ");
-            int pilih = sc.nextInt() - 1;
-
-            if (pilih < 0 || pilih >= productIndex) {
-                System.out.println("Produk tidak valid, ulangi!");
-                i--;
-                continue;
-            }
-
-            ModelProduct p = products[pilih];
-
-            System.out.print("Jumlah beli : ");
+            System.out.print("Jumlah : ");
             int jumlah = sc.nextInt();
 
-            // VALIDASI STOK
-            if (jumlah > p.getStok()) {
-                System.out.println("Stok tidak cukup! Stok tersedia: " + p.getStok());
-                i--;
-                continue;
-            }
-
-            // Kurangi stok
+            ModelProduct p = products[idx];
             p.setStok(p.getStok() - jumlah);
 
-            // Tambahkan item ke transaksi
             tr.addItem(new ItemTransaksi(p.getNamaProduk(), p.getHarga(), jumlah));
         }
 
+        history[historyIndex++] = tr;
         printStruk(tr);
-        history[historyIndex++] = tr;  // simpan ke history
     }
 
-    // ===================== CETAK STRUK =====================
-    void printStruk(ModelTransaksi tr){
-        System.out.println("\n=========== STRUK BELANJA ===========");
-
+    void printStruk(ModelTransaksi tr) {
+        System.out.println("\n=== STRUK BELANJA ===");
         for (int i = 0; i < tr.itemCount; i++) {
             ItemTransaksi it = tr.items[i];
-            int subtotal = it.harga * it.jumlah;
-
-            System.out.println(it.namaProduk + " x" + it.jumlah +
-                    " @ " + it.harga + " = " + subtotal);
+            System.out.println(it.namaProduk + " x" + it.jumlah);
         }
-
-        System.out.println("-------------------------------------");
-        System.out.println("TOTAL BAYAR : " + tr.total);
-        System.out.println("=====================================");
+        System.out.println("TOTAL : " + tr.total);
     }
 
-    // ===================== SHOW HISTORY =====================
-    void showHistory(){
-        System.out.println("\n=== HISTORY TRANSAKSI ===");
-
+    // ===================== HISTORY =====================
+    void showHistory() {
         if (historyIndex == 0) {
-            System.out.println("Belum ada transaksi!");
+            System.out.println("Belum ada transaksi.");
             return;
         }
 
         for (int i = 0; i < historyIndex; i++) {
-            ModelTransaksi tr = history[i];
-
-            System.out.println("\nTransaksi ke-" + (i+1));
-            for (int j = 0; j < tr.itemCount; j++) {
-                ItemTransaksi it = tr.items[j];
-                System.out.println("- " + it.namaProduk + " x" + it.jumlah + " @ " + it.harga);
-            }
-            System.out.println("Total : " + tr.total);
+            System.out.println("Transaksi ke-" + (i + 1)
+                    + " | Total: " + history[i].total);
         }
     }
 
-    // ===================== FITUR ADD STOK =====================
-    void addStok(){
-        if (productIndex == 0) {
-            System.out.println("Belum ada produk!");
-            return;
-        }
-
-        System.out.println("\n=== ADD STOK PRODUK ===");
-        showProduct();
-
-        System.out.print("Pilih nomor produk : ");
-        int pilih = sc.nextInt() - 1;
-
-        if (pilih < 0 || pilih >= productIndex) {
-            System.out.println("Produk tidak valid!");
-            return;
-        }
-
-        System.out.print("Tambah stok sebanyak : ");
-        int tambah = sc.nextInt();
-
-        int stokBaru = products[pilih].getStok() + tambah;
-        products[pilih].setStok(stokBaru);
-
-        System.out.println("Stok berhasil ditambah! Stok sekarang: " + stokBaru);
+    // ===================== LOGOUT & STOP =====================
+    void logout() {
+        currentUser = null;
+        sc.nextLine();
+        loginUser();
     }
 
-    // ===================== FITUR LOGOUT =====================
-    void logout(){
-        sc.nextLine(); // bersihkan buffer
-        System.out.println("\n=== LOGOUT BERHASIL ===");
-        loginUser();   // kembali ke login
-    }
-
-    // ===================== STOP APPS =====================
-    void stopApp(){
-        System.out.println("\nAplikasi dihentikan...");
+    void stopApp() {
+        System.out.println("Aplikasi dihentikan.");
+        System.exit(0);
     }
 }
